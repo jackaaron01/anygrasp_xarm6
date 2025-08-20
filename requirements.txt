@@ -1,0 +1,12 @@
+torch>=1.7.1
+torchvision
+torchaudio
+torchtext
+torchsparse
+MinkowskiEngine==0.5.4
+open3d>=0.16
+numpy>=1.21
+scipy>=1.7
+pyrealsense2>=2.50
+Pillow>=9.0
+matplotlib
