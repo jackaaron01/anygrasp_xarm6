@@ -6,10 +6,7 @@ from camera.pointcloud_utils import convert_to_pointcloud
 from config.camera_params import fx, fy, cx, cy, workspace_lims
 
 def get_grasp_once(pipeline, align, anygrasp, spatial=None, temporal=None, hole_filling=None, debug=False):
-    """
-    执行一次抓取检测，返回最优抓取结果或 None
-    改进：使用 RealSense 滤波 + 点云降噪 + 下采样
-    """
+
     color, depth = capture_aligned_frames(pipeline, align, spatial, temporal, hole_filling)
     if color is None:
         return None
@@ -48,8 +45,10 @@ def get_grasp_once(pipeline, align, anygrasp, spatial=None, temporal=None, hole_
         [0, 0, -1, 0],
         [0, 0, 0, 1]
     ], dtype=np.float64)
-
     cloud_copy = cloud.transform(trans_mat)
+    if cloud is not None:
+        cloud_copy = o3d.geometry.PointCloud(cloud)  # 深拷贝
+        cloud_copy.transform(trans_mat)
     grippers = top_grasp.to_open3d_geometry_list()
     grippers_transformed = []
     for g in grippers:
