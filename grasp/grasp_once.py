@@ -1,60 +1,77 @@
 # grasp/grasp_loop.py
-import numpy as np
 import open3d as o3d
-from grasp.grasp_pose import compute_grasp_pose
+import numpy as np
+from camera.realsense_utils import capture_aligned_frames
+from camera.pointcloud_utils import convert_to_pointcloud
+from config.camera_params import fx, fy, cx, cy, workspace_lims
 
-def get_grasp_once(pipeline, align, anygrasp,
-                   spatial=None, temporal=None, hole_filling=None,
-                   debug=False, roi=None, save_ply=False):
-    """
-    从 RealSense 获取一帧并计算抓取点
-    :param roi: (x1, y1, x2, y2)，YOLO 检测到的物体框，用于裁剪点云
-    """
-    frames = pipeline.wait_for_frames()
-    aligned_frames = align.process(frames)
+def get_grasp_once(pipeline, align, anygrasp, spatial=None, temporal=None, hole_filling=None, debug=False):
 
-    depth_frame = aligned_frames.get_depth_frame()
-    color_frame = aligned_frames.get_color_frame()
-    if not depth_frame or not color_frame:
+    color, depth = capture_aligned_frames(pipeline, align, spatial, temporal, hole_filling)
+    if color is None:
         return None
 
-    depth_image = np.asanyarray(depth_frame.get_data())
-    color_image = np.asanyarray(color_frame.get_data())
-
-    # ROI 裁剪
-    if roi is not None:
-        x1, y1, x2, y2 = roi
-        depth_image = depth_image[y1:y2, x1:x2]
-        color_image = color_image[y1:y2, x1:x2]
-        color_crop = np.ascontiguousarray(color_image[y1:y2, x1:x2])
-        if debug:
-            print(f"[DEBUG] 使用 ROI 裁剪: {roi}, 剩余尺寸={depth_image.shape}")
-
-    # 转点云
-    rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(
-        o3d.geometry.Image(color_image),
-        o3d.geometry.Image(depth_image),
-        depth_scale=1000.0,
-        depth_trunc=1.0,
-        convert_rgb_to_intensity=False
+    # 转换为高质量点云
+    points, colors = convert_to_pointcloud(
+        color, depth, fx, fy, cx, cy,
+        scale=1000.0,
+        z_min=0.05,   # 更严格的最小深度，过滤噪点
+        z_max=0.8,    # 最大深度
+        voxel_size=0.002  # 体素下采样，平衡密度和噪声
     )
-    intrinsics = aligned_frames.profile.as_video_stream_profile().intrinsics
-    pinhole_camera_intrinsic = o3d.camera.PinholeCameraIntrinsic(
-        intrinsics.width, intrinsics.height,
-        intrinsics.fx, intrinsics.fy,
-        intrinsics.ppx, intrinsics.ppy
-    )
-    pcd = o3d.geometry.PointCloud.create_from_rgbd_image(
-        rgbd, pinhole_camera_intrinsic
-    )
-    pcd = pcd.voxel_down_sample(voxel_size=0.002)
+    print('[INFO] 点云大小:', points.shape)
 
-    if save_ply:
-        o3d.io.write_point_cloud("capture.ply", pcd)
+    # 抓取预测
+    gg, cloud = anygrasp.get_grasp(
+        points, colors,
+        lims=workspace_lims,
+        apply_object_mask=True,
+        collision_detection=True
+    )
 
-    # 送入 AnyGrasp 推理
-    grasps = anygrasp.predict_grasps(pcd)
-    if not grasps or len(grasps) == 0:
+    if gg is None or len(gg) == 0:
+        print("[INFO] 未检测到抓取点")
         return None
 
-    return select_top_grasp(grasps, debug=debug)
+    # 选取最优抓取
+    gg = gg.nms().sort_by_score()
+    top_grasp = gg[0:1]
+    print(f"[INFO] 最高分抓取点得分: {gg[0].score:.3f}")
+
+    # 坐标系变换（Y、Z 轴取反）
+    trans_mat = np.array([
+        [1, 0, 0, 0],
+        [0, -1, 0, 0],
+        [0, 0, -1, 0],
+        [0, 0, 0, 1]
+    ], dtype=np.float64)
+    cloud_copy = None
+    if cloud is not None:
+        try:
+            if hasattr(cloud, 'points'):
+                # cloud 是 Open3D 点云
+                cloud_copy = o3d.geometry.PointCloud()
+                cloud_copy.points = o3d.utility.Vector3dVector(np.asarray(cloud.points))
+            else:
+                # cloud 是 numpy array (N,3)
+                cloud_copy = o3d.geometry.PointCloud()
+                cloud_copy.points = o3d.utility.Vector3dVector(cloud)
+            cloud_copy.transform(trans_mat)
+        except Exception as e:
+            print(f"[WARN] cloud transform 失败: {e}")
+            cloud_copy = None
+
+    # 7. 处理 gripper
+    grippers_transformed = []
+    if hasattr(top_grasp, "to_open3d_geometry_list"):
+        grippers = top_grasp.to_open3d_geometry_list()
+        for g in grippers:
+            g.transform(trans_mat)
+            grippers_transformed.append(g)
+
+    # 8. 调试显示
+    if debug and cloud_copy is not None:
+        axis = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1, origin=[0,0,0])
+        o3d.visualization.draw_geometries([cloud_copy, *grippers_transformed, axis])
+
+    return top_grasp
