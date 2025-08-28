@@ -39,6 +39,7 @@ license/
 MinkowskiEngine/
 gsnet_versions/
 model/
+weights/
 gsnet.so
 lib_cxx.so
 .TimeRecord
