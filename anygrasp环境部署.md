@@ -1,4 +1,4 @@
-# 🦾 AnyGrasp SDK 部署完整笔记
+#  AnyGrasp SDK 部署完整笔记
 
 > **目标环境**：Ubuntu + CUDA 11.7 + Python 3.9
 > **用途**：安装并运行 AnyGrasp SDK（含 MinkowskiEngine 与 PointNet2 支持）
