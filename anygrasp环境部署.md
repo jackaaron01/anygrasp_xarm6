@@ -6,7 +6,7 @@
 
 ---
 
-## 🧩 0️⃣ 基础检查 — GPU 驱动与编译器
+##  0️⃣ 基础检查 — GPU 驱动与编译器
 
 ```bash
 nvidia-smi                # 查看 GPU 驱动及 CUDA 版本
@@ -18,7 +18,7 @@ gcc --version             # 查看系统编译器版本
 
 ---
 
-## 🐍 1️⃣ 创建 Conda 环境（Python 3.9）
+##  1️⃣ 创建 Conda 环境（Python 3.9）
 
 ```bash
 conda create -n anygrasp python=3.9 -y
@@ -29,7 +29,7 @@ conda activate anygrasp
 
 ---
 
-## ⚡ 2️⃣ 安装 PyTorch（CUDA 11.7）
+##  2️⃣ 安装 PyTorch（CUDA 11.7）
 
 > 选择 CUDA 11.7 是因为兼容性和稳定性最好。
 
@@ -39,7 +39,7 @@ conda install -y pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c 
 
 ---
 
-## 🔧 3️⃣ 校验 PyTorch GPU 可用性
+##  3️⃣ 校验 PyTorch GPU 可用性
 
 ```bash
 conda install pytorch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 pytorch-cuda=11.7 -c pytorch -c nvidia
@@ -51,7 +51,7 @@ python -c "import torch; print('CUDA 可用:', torch.cuda.is_available())"
 
 ---
 
-## 🧱 4️⃣ 安装 MinkowskiEngine
+##  4️⃣ 安装 MinkowskiEngine
 
 ```bash
 git clone https://github.com/NVIDIA/MinkowskiEngine.git
@@ -80,7 +80,7 @@ python -c "import MinkowskiEngine as ME; print('MinkowskiEngine 版本:', ME.__v
 
 ---
 
-## 📦 5️⃣ 安装 Python 依赖
+##  5️⃣ 安装 Python 依赖
 
 ```bash
 cd anygrasp_sdk
@@ -98,7 +98,7 @@ cd ..
 
 ---
 
-## 🔐 6️⃣ 部署 License 与 Checkpoint
+##  6️⃣ 部署 License 与 Checkpoint
 
 > 提交官方表格后会收到以下三份文件：
 >
@@ -131,7 +131,7 @@ mv checkpoint_detection.tar log/
 
 ---
 
-## 🧠 7️⃣ 再次编译 PointNet2（确保可用）
+##  7️⃣ 再次编译 PointNet2（确保可用）
 
 ```bash
 cd pointnet2
@@ -141,7 +141,7 @@ cd ..
 
 ---
 
-## ✅ 8️⃣ 最终验证
+##  8️⃣ 最终验证
 
 ```bash
 # 检查 PyTorch 与 CUDA 是否正常
