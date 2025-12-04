@@ -11,13 +11,13 @@ import os, time, argparse
 import open3d as o3d 
 from scipy.spatial.transform import Rotation as R 
 from gsnet import AnyGrasp
-from config.camera_params import tcp_T_camera
+from config.camera_params_197 import tcp_T_camera
 from camera.realsense_utils import get_realsense_pipeline
 from grasp.move_utils import move_along_tcp
 from grasp.grasp_loop import get_grasp_once
 from grasp.grasp_pose import compute_grasp_pose
-from grasp.grasp_executor import move_to_grasp
-from robot.xarm_utils import init_xarm
+from grasp.grasp_executor_197 import move_to_grasp
+from robot.xarm_197 import init_xarm
 
 
 def parse_args():
@@ -75,4 +75,4 @@ if __name__ == '__main__':
     main()
 
 
-# python3 main.py --checkpoint_path ./model/checkpoint_detection.tar --debug
+# python3 main_197.py --checkpoint_path ./model/checkpoint_detection.tar --debug
